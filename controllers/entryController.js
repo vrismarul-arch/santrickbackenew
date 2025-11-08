@@ -3,11 +3,12 @@ import nodemailer from "nodemailer";
 
 export const addEntry = async (req, res) => {
   try {
-    const { name, email, phone, message } = req.body;
+    const { eventType, name, date, venue, audizeSize, duration, addOns, contactName, contactEmail, contactPhone } = req.body;
 
-    const newEntry = new Entry({ name, email, phone, message });
+    const newEntry = new Entry({ eventType, name, date, venue, audizeSize, duration, addOns, contactName, contactEmail, contactPhone });
     await newEntry.save();
 
+    // Send confirmation email
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
@@ -15,13 +16,15 @@ export const addEntry = async (req, res) => {
 
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
-      to: email,
-      subject: "Form Submitted Successfully ✅",
-      text: `Hello ${name},\n\nThank you for contacting us.\n\nMessage:\n${message}\n\nWe will reply soon.`
+      to: contactEmail,
+      subject: "Sand Art Event Booking ✅",
+      text: `Hello ${contactName},\n\nYour Sand Art Event has been booked successfully!\n\nDetails:\nEvent: ${name}\nType: ${eventType}\nDate: ${date}\nVenue: ${venue}\nAudience: ${audizeSize}\nDuration: ${duration}\nAdd-ons: ${Object.keys(addOns).filter(k => addOns[k]).join(", ") || "None"}`
     });
 
     res.json({ success: true, message: "Saved & Email Sent ✅" });
+
   } catch (err) {
+    console.error(err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
