@@ -7,13 +7,12 @@ import entryRoutes from "./routes/entries.js";
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
 
-// --- Middleware ---
+// CORS
 app.use(cors({
   origin: [
-    "http://localhost:5173",                // local dev
-    "https://santricksnewform.vercel.app"  // deployed frontend
+    "http://localhost:5173",
+    "https://santricksnewform.vercel.app"
   ],
   methods: ["GET", "POST", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
@@ -22,19 +21,24 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// MongoDB Connection — Prevent Multiple Connections
+if (!global._mongooseConnected) {
+  mongoose
+    .connect(process.env.MONGO_URI, {
+      serverSelectionTimeoutMS: 20000,
+    })
+    .then(() => {
+      console.log("✅ MongoDB Connected");
+      global._mongooseConnected = true;
+    })
+    .catch((err) => {
+      console.error("❌ MongoDB Connection Error:", err);
+    });
+}
+
 // Routes
 app.use("/api/entries", entryRoutes);
 
-// Test route
-app.get("/", (req, res) => res.send("API is running"));
+app.get("/", (req, res) => res.send("✅ API is running..."));
 
-// --- MongoDB ---
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => console.log("✅ MongoDB Connected"))
-.catch(err => console.error("❌ MongoDB Connection Error:", err));
-
-// --- Start server ---
-app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+export default app; // 🚀 IMPORTANT FOR VERCEL
