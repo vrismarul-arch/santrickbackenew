@@ -1,84 +1,44 @@
 import Entry from "../models/Entry.js";
-import nodemailer from "nodemailer";
+import transporter from "../config/transporter.js"; // Import transporter
 
 export const addEntry = async (req, res) => {
   try {
     const data = req.body;
 
-    // Convert addOns if needed
-    if (typeof data.addOns === "string") {
-      data.addOns = JSON.parse(data.addOns);
-    }
+    // Save entry to DB
+    const entry = await Entry.create({
+      eventType: data.eventType,
+      name: data.name,
+      date: data.date,
+      venue: data.venue,
+      audizeSize: data.audizeSize,
+      duration: data.duration,
+      addOns: data.addOns,
+      contactName: data.contactName,
+      contactEmail: data.contactEmail,
+      contactPhone: data.contactPhone,
+    });
 
-    // Files support
-    data.images = req.files?.map(file => file.filename) || [];
-
-    // Save to DB
-    const entry = await Entry.create(data);
-
-    // Send Email Only if user provided email
+    // Send confirmation email if email exists
     if (data.contactEmail) {
-      const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
-        },
-      });
-
       await transporter.sendMail({
-        from: `"Sandtricks Team" <${process.env.EMAIL_USER}>`,
+        from: `"Sand Art" <${process.env.EMAIL_USER}>`,
         to: data.contactEmail,
-        subject: "🎉 Booking Confirmed - Thank You for Choosing Sandtricks!",
+        subject: "Sand Art Booking Confirmation 🎉",
         html: `
-        <div style="font-family: Arial, sans-serif; padding: 20px; background: #fafafa; border-radius: 10px;">
-          <div style="text-align: center;">
-            <h1 style="color: #d97706;">✨ Sandtricks Sand Art Booking ✨</h1>
-          </div>
-
-          <p style="font-size: 16px;">Hi <strong>${data.contactName}</strong>,</p>
-
-          <p style="font-size: 15px; line-height: 1.6;">
-            Thank you for booking <strong>Sand Art Performance</strong> with us! 🎨  
-            We have successfully received your request.
-          </p>
-
-          <div style="background: white; padding: 15px; border-radius: 8px; margin-top: 15px; border: 1px solid #eee;">
-            <h3 style="margin-top: 0; color: #444;">Booking Summary:</h3>
-            <p><strong>Event Type:</strong> ${data.eventType}</p>
-            <p><strong>Event Date:</strong> ${data.date}</p>
-            <p><strong>Venue:</strong> ${data.venue || "Not Provided"}</p>
-            <p><strong>Duration:</strong> ${data.duration}</p>
-            <p><strong>Add-ons:</strong> ${(Object.keys(data.addOns).filter(k => data.addOns[k]).join(", ") || "No Add-ons Selected")}</p>
-          </div>
-
-          <p style="margin-top: 20px; font-size: 15px;">
-            📩 Our representative will contact you shortly to finalize details.  
-            Meanwhile, feel free to check out our portfolio!
-          </p>
-
-          <div style="text-align: center; margin-top: 30px;">
-            <a href="https://instagram.com/sandtricks" 
-              style="background: #d97706; padding: 10px 18px; color: white; text-decoration: none; border-radius: 6px;">
-              View Portfolio
-            </a>
-          </div>
-
-          <p style="margin-top: 30px; font-size: 14px; text-align: center; color: #666;">
-            Thank you for choosing <strong>Sandtricks</strong> 💛 <br>
-            We look forward to making your event magical!
-          </p>
-        </div>
+          <h2>Hi ${data.contactName},</h2>
+          <p>Your sand art booking has been received successfully!</p>
+          <p>We will contact you soon to finalize the details.</p>
+          <br>
+          <b>Thank You 💛</b>
         `,
       });
-
       console.log("📨 Confirmation Email Sent to", data.contactEmail);
     }
 
-    return res.status(200).json({ message: "Booking saved & confirmation email sent ✅", entry });
-
+    res.status(200).json({ success: true, message: "Booking stored & email sent ✅", entry });
   } catch (err) {
-    console.log(err);
-    return res.status(500).json({ message: "Something went wrong", error: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: "Something went wrong", error: err.message });
   }
 };
