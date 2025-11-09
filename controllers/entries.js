@@ -17,7 +17,7 @@ export const addEntry = async (req, res) => {
           pass: process.env.EMAIL_PASS,
         },
       });
-
+/*  */
       await transporter.sendMail({
         from: process.env.EMAIL_USER,
         to: data.email,
